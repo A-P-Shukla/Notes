@@ -50,6 +50,12 @@ async def get_about():
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
+@app.get("/")
+async def serve_root():
+    return FileResponse("static/index.html")
+
+
 @app.get("/app")
 async def serve_frontend():
     return FileResponse("static/index.html")
