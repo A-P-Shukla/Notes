@@ -1,6 +1,6 @@
 # FastAPI Notes App
 
-**Live Deployment:** [Insert Render URL Here]
+**Live Deployment:** [https://notes-1zto.onrender.com](https://notes-1zto.onrender.com)
 
 ## Project Overview
 
