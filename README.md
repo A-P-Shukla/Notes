@@ -6,12 +6,13 @@
 
 FastAPI Notes App is an async, JWT-secured notes backend built for a backend engineering assignment with production-style concerns: strict response contracts, ownership-aware authorization, note sharing, search, pagination, test coverage, Docker support, and a custom audit-trail feature.
 
+The app now runs on **SQLite only** for maximum deployment simplicity. There is no PostgreSQL service requirement, no external database hostname to configure, and no `asyncpg` dependency. On startup, the API creates the SQLite tables automatically using SQLAlchemy metadata.
+
 The backend stack is:
 
 - **FastAPI** for the HTTP API and OpenAPI documentation
 - **SQLAlchemy 2.0 async** for ORM and query construction
-- **PostgreSQL + asyncpg** as the default database target
-- **SQLite + aiosqlite** for fast local/test execution
+- **SQLite + aiosqlite** for local, test, Docker, and Render execution
 - **Pydantic v2** for request and response validation
 - **PyJWT** for signed Bearer access tokens
 - **Docker** for containerized deployment
@@ -185,16 +186,15 @@ Successful response:
 Build the image:
 
 ```bash
-docker build -t Notes .
+docker build -t notes-app .
 ```
 
 Run the container:
 
 ```bash
 docker run --rm -p 8000:8000 \
-  -e DATABASE_URL="sqlite+aiosqlite:///./notes.db" \
   -e SECRET_KEY="local-development-secret" \
-  Notes
+  notes-app
 ```
 
 The API will be available at:
@@ -203,14 +203,13 @@ The API will be available at:
 http://localhost:8000
 ```
 
-For PostgreSQL, provide a PostgreSQL async SQLAlchemy URL:
+The SQLite database file is created inside the container at:
 
-```bash
-docker run --rm -p 8000:8000 \
-  -e DATABASE_URL="postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/notes" \
-  -e SECRET_KEY="replace-me" \
-  Notes
+```text
+/app/notes.db
 ```
+
+For hosted environments such as Render, no database add-on is required. Set only `SECRET_KEY` and let the app create `notes.db` at runtime.
 
 ## Local Setup: Manual
 
@@ -238,10 +237,9 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-For instant local SQLite execution:
+Set a development secret and run the app:
 
 ```powershell
-$env:DATABASE_URL="sqlite+aiosqlite:///./notes.db"
 $env:SECRET_KEY="local-development-secret"
 uvicorn main:app --reload
 ```
@@ -249,21 +247,14 @@ uvicorn main:app --reload
 On macOS/Linux:
 
 ```bash
-export DATABASE_URL="sqlite+aiosqlite:///./notes.db"
 export SECRET_KEY="local-development-secret"
 uvicorn main:app --reload
 ```
 
-If you are using local PostgreSQL instead, the app defaults to:
+The app always uses:
 
 ```text
-postgresql+asyncpg://postgres:postgres@localhost:5432/notes
-```
-
-You can override it with:
-
-```bash
-DATABASE_URL="postgresql+asyncpg://user:password@host:5432/database"
+sqlite+aiosqlite:///./notes.db
 ```
 
 ## Testing
@@ -320,7 +311,7 @@ Owner-only operations perform stricter checks against `owner_id`.
 ```text
 .
 |-- auth.py              # Password hashing, JWT creation, auth dependency
-|-- database.py          # Async SQLAlchemy engine/session setup
+|-- database.py          # Async SQLite SQLAlchemy engine/session setup
 |-- Dockerfile           # Container image definition
 |-- main.py              # FastAPI app, middleware, exception handlers, static serving
 |-- models.py            # SQLAlchemy ORM models and association table
@@ -336,8 +327,7 @@ Owner-only operations perform stricter checks against `owner_id`.
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `DATABASE_URL` | `postgresql+asyncpg://postgres:postgres@localhost:5432/notes` | Async SQLAlchemy database URL |
 | `SECRET_KEY` | `change-this-secret-key-for-production` | JWT signing secret |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | Access token lifetime |
 
-For production or hosted deployment, always set a strong `SECRET_KEY` and a managed PostgreSQL `DATABASE_URL`.
+For production or hosted deployment, always set a strong `SECRET_KEY`.
